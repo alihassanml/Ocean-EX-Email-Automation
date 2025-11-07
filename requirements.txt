@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+stripe
+python-multipart
+pydantic
+python-dotenv
+reportlab
+requests 
+pydantic[email]
+
