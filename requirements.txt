@@ -7,4 +7,5 @@ python-dotenv
 reportlab
 requests 
 pydantic[email]
+pandas
 
