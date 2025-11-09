@@ -8,4 +8,5 @@ reportlab
 requests 
 pydantic[email]
 pandas
-
+jinja2
+aiofiles
