@@ -26,6 +26,8 @@ ATTACHMENTS = [
     os.path.join(MEDIA_DIR, "Pool bar inside the Bar area demo.mp4"),
     os.path.join(MEDIA_DIR, "Pool bar walk around in the Pool Zone demo.mp4"),
     os.path.join(MEDIA_DIR, "Pool bar Walk around video with LED on.mp4"),
+    os.path.join(MEDIA_DIR, "Cruise Line Brochure.pdf"),
+    os.path.join(MEDIA_DIR, "Resort digital brochure.pdf"),
 ]
 
 def send_email(to_email, name, subject, body):
