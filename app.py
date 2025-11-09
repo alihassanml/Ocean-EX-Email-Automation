@@ -73,3 +73,7 @@ def send_emails(day: int = Query(..., ge=1, le=3)):
             print(f"Failed to send to {row['Email']}: {e}")
 
     return {"status": "success", "sent": sent_count, "day": day}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
