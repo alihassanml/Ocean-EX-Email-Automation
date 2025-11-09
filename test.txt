@@ -65,7 +65,7 @@
     },
     {
         "email": "info@lerepaire.be",
-        "name": "Fr\u00c3\u00a9d\u00c3\u00a9ric Collart"
+        "name": "Frédéric Collart"
     },
     {
         "email": "george.qaiyal@gmail.com",
@@ -73,7 +73,7 @@
     },
     {
         "email": "benedictecujean@gmail.com",
-        "name": "G\u00c3\u00a9rard Cujean"
+        "name": "Gérard Cujean"
     },
     {
         "email": "alexander@lund-gruppen.no",
@@ -157,7 +157,7 @@
     },
     {
         "email": "carlosgon46@gmail.com",
-        "name": "Carlos Gon\u00c3\u00a7alves"
+        "name": "Carlos Goncalves"
     },
     {
         "email": "bruno.morvant@hotmail.com",
