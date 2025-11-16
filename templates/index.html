@@ -81,6 +81,24 @@
             background: #e53e3e;
         }
 
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+        }
+
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #3182ce;
+        }
+
         select {
             padding: 12px;
             border: 2px solid #e2e8f0;
@@ -121,6 +139,19 @@
         .stat-success { color: #48bb78; }
         .stat-failed { color: #f56565; }
         .stat-pending { color: #ed8936; }
+
+        .batch-info {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #2d3748;
+        }
+
+        .batch-info strong {
+            color: #667eea;
+        }
 
         .table-container {
             background: white;
@@ -244,28 +275,59 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .divider {
+            width: 2px;
+            height: 40px;
+            background: #e2e8f0;
+            margin: 0 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Email Campaign Monitor</h1>
+            <h1>📧 Email Campaign Monitor</h1>
             <div class="controls">
-                <select id="daySelect">
-                    <option value="">Select Day</option>
-                    <option value="1">Day 1</option>
-                    <option value="2">Day 2</option>
-                    <option value="3">Day 3</option>
-                </select>
-                <button class="btn btn-primary" onclick="sendEmails()">
-                    Send Emails
-                </button>
-                <button class="btn btn-success" onclick="refreshStatus()">
-                    🔄 Refresh
-                </button>
-                <button class="btn btn-danger" onclick="clearStatus()">
-                    🗑️ Clear All
-                </button>
+                <div class="control-group">
+                    <select id="daySelect">
+                        <option value="">Select Day</option>
+                        <option value="1">Day 1</option>
+                        <option value="2">Day 2</option>
+                        <option value="3">Day 3</option>
+                    </select>
+                    
+                    <select id="batchSelect">
+                        <option value="all">All Emails</option>
+                        <option value="first">First 50%</option>
+                        <option value="second">Second 50%</option>
+                    </select>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div class="control-group">
+                    <button class="btn btn-primary" onclick="sendEmails()">
+                        📤 Send Emails
+                    </button>
+                    <button class="btn btn-success" onclick="refreshStatus()">
+                        🔄 Refresh
+                    </button>
+                    <button class="btn btn-danger" onclick="clearStatus()">
+                        🗑️ Clear All
+                    </button>
+                </div>
+            </div>
+            
+            <div class="batch-info" id="batchInfo" style="display: none;">
+                <strong>📊 Email List Info:</strong> <span id="batchInfoText"></span>
             </div>
         </div>
 
@@ -304,6 +366,7 @@
                         <th>Email</th>
                         <th>Name</th>
                         <th>Day</th>
+                        <th>Batch</th>
                         <th>Status</th>
                         <th>Timestamp</th>
                         <th>Error</th>
@@ -311,7 +374,7 @@
                 </thead>
                 <tbody id="tableBody">
                     <tr>
-                        <td colspan="6" style="text-align: center; color: #718096;">No records found. Start by uploading emails and sending them.</td>
+                        <td colspan="7" style="text-align: center; color: #718096;">No records found. Start by uploading emails and sending them.</td>
                     </tr>
                 </tbody>
             </table>
@@ -357,6 +420,7 @@
                 
                 if (data.status === 'success') {
                     showNotification(data.message);
+                    updateBatchInfo();
                 } else {
                     showNotification(data.message, true);
                 }
@@ -373,6 +437,7 @@
                 if (data.emails && data.emails.length > 0) {
                     document.getElementById('emailJson').value = JSON.stringify(data.emails, null, 2);
                     showNotification(`Loaded ${data.count} emails`);
+                    updateBatchInfo();
                 } else {
                     showNotification('No emails found in database', true);
                 }
@@ -381,8 +446,30 @@
             }
         }
 
+        async function updateBatchInfo() {
+            try {
+                const response = await fetch(`${API_URL}/emails/`);
+                const data = await response.json();
+                
+                if (data.count > 0) {
+                    const batchInfoDiv = document.getElementById('batchInfo');
+                    const batchInfoText = document.getElementById('batchInfoText');
+                    
+                    batchInfoText.innerHTML = `
+                        Total: <strong>${data.count}</strong> emails | 
+                        First 50%: <strong>${data.first_batch_count}</strong> emails | 
+                        Second 50%: <strong>${data.second_batch_count}</strong> emails
+                    `;
+                    batchInfoDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error updating batch info:', error);
+            }
+        }
+
         async function sendEmails() {
             const day = document.getElementById('daySelect').value;
+            const batch = document.getElementById('batchSelect').value;
             
             if (!day) {
                 showNotification('Please select a day!', true);
@@ -390,12 +477,11 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/send-emails/?day=${day}`);
+                const response = await fetch(`${API_URL}/send-emails/?day=${day}&batch=${batch}`);
                 const data = await response.json();
                 
                 if (data.status === 'processing') {
                     showNotification(data.message);
-                    // Start auto-refresh
                     startAutoRefresh();
                 } else {
                     showNotification(data.message, true);
@@ -455,7 +541,7 @@
             const tbody = document.getElementById('tableBody');
             
             if (records.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #718096;">No records found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #718096;">No records found</td></tr>';
                 return;
             }
 
@@ -464,6 +550,7 @@
                     <td>${record.email}</td>
                     <td>${record.name}</td>
                     <td>Day ${record.day}</td>
+                    <td>${record.batch ? record.batch.charAt(0).toUpperCase() + record.batch.slice(1) : 'All'}</td>
                     <td>
                         <span class="status-badge status-${record.status.toLowerCase()}">
                             ${record.status}
@@ -482,11 +569,12 @@
             
             autoRefreshInterval = setInterval(() => {
                 refreshStatus();
-            }, 3000); // Refresh every 3 seconds
+            }, 3000);
         }
 
-        // Load status on page load
+        // Load status and batch info on page load
         refreshStatus();
+        updateBatchInfo();
     </script>
 </body>
 </html>

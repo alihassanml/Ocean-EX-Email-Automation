@@ -110,7 +110,7 @@ def send_email(to_email, name, subject, body):
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         server.send_message(msg)
 
-def process_emails_background(day: int):
+def process_emails_background(day: int, batch: str = "all"):
     """Background task to process emails."""
     emails_list = load_emails_from_json()
     
@@ -118,13 +118,28 @@ def process_emails_background(day: int):
         print(f"Invalid day: {day}")
         return
 
+    # Filter emails based on batch selection
+    total_emails = len(emails_list)
+    mid_point = total_emails // 2
+    
+    if batch == "first":
+        emails_to_send = emails_list[:mid_point]
+        print(f"Sending first batch: {len(emails_to_send)} emails (1-{mid_point})")
+    elif batch == "second":
+        emails_to_send = emails_list[mid_point:]
+        print(f"Sending second batch: {len(emails_to_send)} emails ({mid_point+1}-{total_emails})")
+    else:  # "all"
+        emails_to_send = emails_list
+        print(f"Sending all emails: {len(emails_to_send)}")
+
     email_data = templates[day]
 
-    for person in emails_list:
+    for person in emails_to_send:
         email_record = {
             "email": person["email"],
             "name": person["name"],
             "day": day,
+            "batch": batch,
             "status": "Pending",
             "timestamp": datetime.now().isoformat(),
             "error": None
@@ -167,11 +182,22 @@ def upload_emails(emails: List[Dict[str, str]]):
 def get_emails():
     """Get all emails from JSON file."""
     emails = load_emails_from_json()
-    return {"emails": emails, "count": len(emails)}
+    total = len(emails)
+    mid_point = total // 2
+    return {
+        "emails": emails,
+        "count": total,
+        "first_batch_count": mid_point,
+        "second_batch_count": total - mid_point
+    }
 
 @app.get("/send-emails/")
-def send_emails(background_tasks: BackgroundTasks, day: int = Query(..., ge=1, le=3)):
-    """Send email template based on the selected day (runs in background)."""
+def send_emails(
+    background_tasks: BackgroundTasks, 
+    day: int = Query(..., ge=1, le=3),
+    batch: str = Query("all", regex="^(all|first|second)$")
+):
+    """Send email template based on the selected day and batch (runs in background)."""
     emails_list = load_emails_from_json()
     
     if not emails_list:
@@ -180,14 +206,30 @@ def send_emails(background_tasks: BackgroundTasks, day: int = Query(..., ge=1, l
     if day not in templates:
         return {"status": "error", "message": "Invalid day. Use 1, 2, or 3."}
     
+    # Calculate batch size
+    total_emails = len(emails_list)
+    mid_point = total_emails // 2
+    
+    if batch == "first":
+        batch_size = mid_point
+        batch_desc = f"first 50% ({batch_size} emails)"
+    elif batch == "second":
+        batch_size = total_emails - mid_point
+        batch_desc = f"second 50% ({batch_size} emails)"
+    else:
+        batch_size = total_emails
+        batch_desc = f"all {batch_size} emails"
+    
     # Add background task
-    background_tasks.add_task(process_emails_background, day)
+    background_tasks.add_task(process_emails_background, day, batch)
     
     return {
         "status": "processing",
-        "message": f"Email sending started in background for Day {day}",
-        "total_emails": len(emails_list),
-        "day": day
+        "message": f"Email sending started for Day {day} - {batch_desc}",
+        "total_emails": total_emails,
+        "batch_size": batch_size,
+        "day": day,
+        "batch": batch
     }
 
 @app.get("/email-status/")
